@@ -13,24 +13,47 @@ router.get("/ping", (req, res) => {
     res.send("pong");
 });
 
-router.get("/download/:size", (req, res) => {
-    const { size } = req.params;
+// router.get("/download/:size", (req, res) => {
+//     const { size } = req.params;
+//     const filePath = path.join(
+//         __dirname,
+//         "../test-files",
+//         `${size}mb.bin`
+//     );
+//     if (!fs.existsSync(filePath)) {
+//         return res.status(404).json({
+//             error: "Test file not found",
+//             path: filePath
+//         });
+//     }
+//     res.download(filePath);
+// });
 
-    const filePath = path.join(
-        __dirname,
-        "../test-files",
-        `${size}mb.bin`
-    );
+//adding function to upload chunk data as test-files not working in render
+router.get("/download", (req, res) => {
+  const sizeMB = Number(req.query.size || 20);
+  const totalBytes = sizeMB * 1024 * 1024;
 
-    if (!fs.existsSync(filePath)) {
-        return res.status(404).json({
-            error: "Test file not found",
-            path: filePath
-        });
+  res.setHeader("Content-Type", "application/octet-stream");
+  res.setHeader("Content-Length", totalBytes);
+  res.setHeader("Cache-Control", "no-store");
+
+  const chunk = Buffer.alloc(1024 * 64); // 64KB chunk
+  let sent = 0;
+
+  function send() {
+    while (sent < totalBytes) {
+      if (!res.write(chunk)) {
+        return res.once("drain", send);
+      }
+      sent += chunk.length;
     }
+    res.end();
+  }
 
-    res.download(filePath);
+  send();
 });
+  
 
 
 //upload test
